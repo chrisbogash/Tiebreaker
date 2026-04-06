@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Host Food Session - TieBreaker</title>
+    <link rel="icon" type="image/png" href="images/tieBreaker.png">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <script src="leave-handler.js"></script>
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar">
+        <span class="navbar-brand">TieBreaker</span>
+        <div>
+            <a href="#" class="danger" onclick="triggerLeaveAndRedirect('dashboard.html')">Leave Session</a>
+        </div>
+    </nav>
+
+    <div class="page-wrapper">
+        <div class="card" style="width: 100%; max-width: 520px; text-align: center;">
+
+            <h1 style="margin-top: 0; color: var(--text-main);">Food Session Ready!</h1>
+
+            <!-- PIN display box -->
+            <div class="info-panel" style="margin: 20px 0; border: 2px dashed #8ac1f1;">
+                <p style="color: var(--text-muted); margin: 0 0 5px 0;">Share this code with your group:</p>
+                <h1 id="groupCode" style="font-size: 48px; color: var(--red); letter-spacing: 8px; margin: 10px 0;">...</h1>
+                <p style="color: var(--text-muted); font-size: 14px; margin: 0 0 12px 0;">They enter this on the dashboard to join</p>
+                <button onclick="copyCode()" style="background-color: #333; color: white; padding: 10px 20px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer;">
+                    Copy Code
+                </button>
+            </div>
+
+            <!-- Participant count -->
+            <h2 id="participant-count" style="margin-bottom: 10px;">Participants (0)</h2>
+
+            <!-- Participant list -->
+            <div id="participants-container" class="info-panel" style="min-height: 80px; text-align: left; margin-bottom: 20px;">
+                <p style="color: var(--text-muted); margin: 5px 0;"><em>Waiting for others to join...</em></p>
+            </div>
+
+            <!-- Start button (disabled until 2+ people) -->
+            <button id="start-session-btn" disabled class="btn btn-gray" style="font-size: 20px;">
+                Start Session
+            </button>
+            <p id="requirementMsg" style="color: var(--text-muted); font-size: 14px; margin-top: 10px;">
+                Need at least 2 people to start
+            </p>
+
+        </div>
+    </div>
+
+    <script>
+        const urlParams  = new URLSearchParams(window.location.search);
+        const currentPin = urlParams.get('code');
+
+        if (currentPin) {
+            document.getElementById('groupCode').textContent = currentPin;
+            startPolling();
+        } else {
+            document.getElementById('groupCode').textContent = "ERROR";
+            alert("No Session Code found! Please go back to Dashboard.");
+        }
+
+        function copyCode() {
+            const code = document.getElementById('groupCode').textContent;
+            navigator.clipboard.writeText(code);
+            alert('Code copied: ' + code);
+        }
+
+        function startPolling() {
+            fetchUsers();
+            setInterval(fetchUsers, 2000);
+        }
+
+        async function fetchUsers() {
+            try {
+                const response = await fetch(`http://localhost:3000/api/session/${currentPin}`);
+                const data = await response.json();
+
+                if (data.success) {
+                    document.getElementById('participant-count').textContent = `Participants (${data.users.length})`;
+
+                    const list = document.getElementById('participants-container');
+                    list.innerHTML = '';
+                    if (data.users.length === 0) {
+                        list.innerHTML = '<p style="color: var(--text-muted); margin: 5px 0;"><em>Waiting for others to join...</em></p>';
+                    } else {
+                        data.users.forEach((u, index) => {
+                            const isHost = index === 0;
+                            const row = document.createElement('div');
+                            row.className = 'user-row' + (isHost ? ' is-host' : '');
+                            row.innerHTML = `<span>${u}</span> ${isHost ? '<span class="host-badge">HOST</span>' : ''}`;
+                            list.appendChild(row);
+                        });
+                    }
+
+                    const startBtn = document.getElementById('start-session-btn');
+                    const reqMsg   = document.getElementById('requirementMsg');
+                    if (data.users.length >= 2) {
+                        startBtn.disabled       = false;
+                        startBtn.className      = 'btn btn-green';
+                        startBtn.style.fontSize = '20px';
+                        reqMsg.textContent      = 'Ready to start!';
+                        reqMsg.style.color      = 'var(--green)';
+                    } else {
+                        startBtn.disabled       = true;
+                        startBtn.className      = 'btn btn-gray';
+                        startBtn.style.fontSize = '20px';
+                        reqMsg.textContent      = 'Need at least 2 people to start';
+                        reqMsg.style.color      = 'var(--text-muted)';
+                    }
+                }
+            } catch (err) {
+                console.error("Error fetching participants:", err);
+            }
+        }
+
+        document.getElementById('start-session-btn').addEventListener('click', async () => {
+            const startBtn = document.getElementById('start-session-btn');
+            startBtn.disabled = true;
+            startBtn.textContent = 'Starting...';
+
+            navigator.geolocation.getCurrentPosition(async (pos) => {
+                try {
+                    const response = await fetch(`http://localhost:3000/api/session/start/${currentPin}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ lat: pos.coords.latitude, lng: pos.coords.longitude })
+                    });
+                    if (response.ok) {
+                        if (typeof window.setInternalNavigation === 'function') window.setInternalNavigation();
+                        window.location.href = `votefood.html?code=${currentPin}`;
+                    } else {
+                        alert("Failed to start session. Try again.");
+                        startBtn.disabled = false;
+                        startBtn.textContent = 'Start Session';
+                    }
+                } catch (err) {
+                    console.error("Error starting session:", err);
+                    startBtn.disabled = false;
+                    startBtn.textContent = 'Start Session';
+                }
+            }, (err) => {
+                console.warn("Location error:", err);
+                alert("Location is required to find local food! Please allow location access.");
+                startBtn.disabled = false;
+                startBtn.textContent = 'Start Session';
+            });
+        });
+    </script>
+</body>
+</html>

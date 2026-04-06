@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TieBreaker | Dashboard</title>
+    <link rel="icon" type="image/png" href="images/tieBreaker.png">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+
+    <style>
+        /* Dashboard Header Text */
+        .dashboard-header {
+            color: rgb(0, 0, 0);
+            font-size: 36px;
+            margin-bottom: 10px;
+        }
+
+        .dashboard-subheader {
+            color: rgb(0, 0, 0);
+            font-size: 18px;
+            margin-bottom: 0;
+        }
+
+        /* Dashboard Grid */
+        .dashboard-grid {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin: 30px 0 50px 0;
+        }
+
+        /* Interactive Dashboard Cards */
+        .dashboard-card {
+            flex: 1;
+            min-width: 220px;
+            max-width: 280px;
+            padding: 30px 20px;
+            border-radius: 16px;
+            border: 2px solid transparent;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            background-color: white;
+            box-shadow: var(--shadow);
+        }
+
+        .dashboard-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.12);
+        }
+
+        /* Specific Mode Colors */
+        .card-food {
+            background: #FFF7ED;
+            border-color: #F97316;
+        }
+
+        .card-movies {
+            background: #EFF6FF;
+            border-color: #3B82F6;
+        }
+
+        .card-activities {
+            background: #F0FDF4;
+            border-color: #22C55E;
+        }
+
+        /* Card Content Styling */
+        .dashboard-card h3 {
+            margin: 0;
+            font-size: 22px;
+            color: var(--text-main);
+        }
+
+        .mode-image {
+            width: 100px;
+            height: 100px;
+            object-fit: cover;
+            border-radius: 16px;
+            margin: 20px 0;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .card-desc {
+            font-size: 15px;
+            color: var(--text-muted);
+            margin-bottom: 20px;
+            flex-grow: 1;
+        }
+
+        /* Join Room Section */
+        .join-card {
+            max-width: 420px;
+            margin: 0 auto;
+            text-align: center;
+            padding: 40px;
+        }
+
+        .join-input {
+            text-align: center;
+            font-size: 24px;
+            letter-spacing: 2px;
+            margin-bottom: 20px;
+            padding: 15px;
+        }
+    </style>
+
+    <script>
+        // Redirect to login if not logged in
+        const token = localStorage.getItem('tiebreaker_token');
+        if (!token) {
+            alert("Please log in first!");
+            window.location.href = 'index.html';
+        }
+    </script>
+</head>
+
+<body>
+    <nav class="navbar">
+        <a href="index.html" class="navbar-brand">TieBreaker</a>
+        <div style="display: flex; align-items: center; gap: 15px;">
+            <span id="navUsername" style="color: var(--text-main); font-size: 14px; font-weight: 600;"></span>
+            <a href="#" class="danger" onclick="handleLogout()">Logout</a>
+        </div>
+    </nav>
+
+    <div class="page-wrapper" style="display: block; text-align: center;">
+
+        <h1 class="dashboard-header">Ready to Decide?</h1>
+        <p class="dashboard-subheader">Choose a category to start a new session</p>
+
+        <div class="dashboard-grid">
+            <div class="dashboard-card card-food">
+                <h3>Food</h3>
+                <img src="images/food.png" alt="Food" class="mode-image">
+                <p class="card-desc">Decide where to eat with your group.</p>
+                <button class="btn btn-red" style="background-color: #F97316;" onclick="createSession('food')">Start
+                    Food</button>
+            </div>
+
+            <div class="dashboard-card card-movies">
+                <h3>Movies</h3>
+                <img src="images/movie.png" alt="Movies" class="mode-image">
+                <p class="card-desc">Pick what to watch together.</p>
+                <button class="btn btn-red" style="background-color: #3B82F6;" onclick="createSession('movies')">Start
+                    Movies</button>
+            </div>
+
+            <div class="dashboard-card card-activities">
+                <h3>Activities</h3>
+                <img src="images/activities.png" alt="Activities" class="mode-image">
+                <p class="card-desc">Find something fun to do locally.</p>
+                <button class="btn btn-red" style="background-color: #22C55E;"
+                    onclick="createSession('activities')">Start Activities</button>
+            </div>
+        </div>
+
+        <div class="divider" style="max-width: 600px; margin: 0 auto 40px auto;"></div>
+
+        <div class="card join-card">
+            <h2 style="margin-top: 0;">Join Existing Room</h2>
+            <p style="color: var(--text-muted); margin-bottom: 25px;">Enter the 4-digit code shared by your host</p>
+
+            <input type="text" id="groupCode" placeholder="e.g. 4821" maxlength="6" class="form-input join-input">
+
+            <button class="btn btn-dark" onclick="joinSession()">Join Session</button>
+        </div>
+
+    </div>
+
+    <script>
+        // Set username in navbar
+        try {
+            const u = JSON.parse(localStorage.getItem('user_info')).username;
+            if (u) document.getElementById('navUsername').textContent = 'Welcome ' + u + '!';
+        } catch (e) { }
+
+        // Creates a new session and redirects to the (unified) host page
+        async function createSession(type) {
+            try {
+                // Get username from localStorage
+                let currentUser = "Host";
+                const storedInfo = localStorage.getItem('user_info');
+                if (storedInfo) {
+                    try {
+                        const parsed = JSON.parse(storedInfo);
+                        currentUser = parsed.username || "Host";
+                    } catch (e) {
+                        currentUser = storedInfo;
+                    }
+                }
+
+                const response = await fetch('http://localhost:3000/api/session/create', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: currentUser, category: type })
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    window.location.href = `host${type}.html?code=${data.pin}`;
+                } else {
+                    alert("Server Error: " + data.error);
+                }
+            } catch (error) {
+                console.error(error);
+                alert("Could not connect to server.");
+            }
+        }
+
+        // Sends user to the join page with the entered code
+        function joinSession() {
+            const code = document.getElementById('groupCode').value.trim();
+            if (code.length >= 4) {
+                window.location.href = `joinSession.html?code=${code}`;
+            } else {
+                alert('Please enter a valid room code (4 digits).');
+            }
+        }
+
+        // Clears login info and sends back to home
+        function handleLogout() {
+            localStorage.removeItem('tiebreaker_token');
+            localStorage.removeItem('user_info');
+            alert("Logging you out...");
+            window.location.href = 'index.html';
+        }
+    </script>
+</body>
+
+</html>

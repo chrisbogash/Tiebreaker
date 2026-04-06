@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register - TieBreaker</title>
+    <link rel="icon" type="image/png" href="images/tieBreaker.png">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <a href="index.html" class="back-btn">← Back to Home</a>
+
+    <div class="page-wrapper">
+        <div class="card" style="width: 100%; max-width: 460px;">
+
+            <h1 style="text-align:center; color: var(--text-main);">Create Account</h1>
+            <div class="title-bar title-bar-red"></div>
+
+            <!-- Error / Success message boxes -->
+            <div id="errorMsg"   style="display:none; background:#FEE2E2; color:#B91C1C; padding:12px; border-radius:8px; margin-bottom:15px; font-size:14px;"></div>
+            <div id="successMsg" style="display:none; background:#D1FAE5; color:#065F46; padding:12px; border-radius:8px; margin-bottom:15px; font-size:14px;"></div>
+
+            <form id="registerForm">
+                <label class="form-label">Username:</label>
+                <input type="text" id="username" placeholder="Choose a username"
+                    class="form-input" required>
+
+                <label class="form-label">Email:</label>
+                <input type="email" id="email" placeholder="your.email@example.com"
+                    class="form-input" required>
+
+                <label class="form-label">Password:</label>
+                <input type="password" id="password" placeholder="Enter your password"
+                    class="form-input" required>
+
+                <label class="form-label">Confirm Password:</label>
+                <input type="password" id="confirmPassword" placeholder="Re-enter your password"
+                    class="form-input" required>
+
+                <button type="submit" class="btn btn-red" style="font-size:18px;">Register</button>
+            </form>
+
+            <div class="divider"></div>
+            <p style="text-align:center; color:var(--text-muted);">
+                Already have an account?
+                <a href="login.html" style="color:var(--green); font-weight:bold; text-decoration:none;">Login here</a>
+            </p>
+        </div>
+    </div>
+
+    <script>
+        function showError(msg) {
+            document.getElementById('successMsg').style.display = 'none';
+            const box = document.getElementById('errorMsg');
+            box.textContent = msg;
+            box.style.display = 'block';
+        }
+        function showSuccess(msg) {
+            document.getElementById('errorMsg').style.display = 'none';
+            const box = document.getElementById('successMsg');
+            box.textContent = msg;
+            box.style.display = 'block';
+        }
+
+        document.getElementById('registerForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const username        = document.getElementById('username').value;
+            const email           = document.getElementById('email').value;
+            const password        = document.getElementById('password').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+
+            if (password !== confirmPassword) {
+                showError("Passwords do not match!");
+                return;
+            }
+
+            try {
+                const response = await fetch('http://localhost:3000/api/auth/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, email, password })
+                });
+                const data = await response.json();
+
+                if (response.ok) {
+                    showSuccess("Account created! Redirecting to login...");
+                    setTimeout(() => window.location.href = 'login.html', 1500);
+                } else {
+                    // Backend sends 'error' for register failures
+                    showError(data.error || "Registration failed. Username may already exist.");
+                }
+            } catch (error) {
+                console.error("Connection error:", error);
+                showError("Could not connect to the backend. Make sure your server is running!");
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vote for Activities - TieBreaker</title>
+    <link rel="icon" type="image/png" href="images/tieBreaker.png">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <script src="leave-handler.js"></script>
+    <style>
+        .vote-btn {
+            padding: 15px;
+            width: 100%;
+            border: none;
+            border-radius: 10px;
+            font-size: 22px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: filter 0.2s;
+        }
+        .vote-btn:hover { filter: brightness(110%); }
+        .vote-btn-no  { background-color: var(--red);   color: white; }
+        .vote-btn-yes { background-color: var(--green); color: white; }
+    </style>
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar">
+        <span class="navbar-brand">TieBreaker</span>
+        <div>
+            <a href="#" class="danger" onclick="triggerLeaveAndRedirect('dashboard.html')">Leave Session</a>
+        </div>
+    </nav>
+
+    <div class="page-wrapper">
+
+        <!-- Loading state -->
+        <div id="loadingMessage" style="text-align: center;">
+            <p style="font-size: 18px; color: white;">Finding activities... please wait</p>
+        </div>
+
+        <!-- Error state -->
+        <div id="errorMessage" style="display: none; text-align: center;">
+            <div class="card" style="max-width: 460px;">
+                <p style="font-size: 18px; color: var(--red);" id="errorText">Something went wrong.</p>
+                <a href="dashboard.html" class="btn btn-dark"
+                    style="display: inline-block; text-decoration: none; padding: 12px 24px; border-radius: 10px; margin-top: 10px;">
+                    Back to Dashboard
+                </a>
+            </div>
+        </div>
+
+        <!-- Voting card -->
+        <div id="votingCard" style="display: none; width: 100%; max-width: 460px;">
+            <div class="card">
+                <p id="progressMsg" style="color: var(--text-muted); font-size: 14px; margin-top: 0; margin-bottom: 12px;">
+                    Activity 1 of 10
+                </p>
+                <img id="cardImg" src="" alt="Activity photo"
+                    style="width: 100%; height: 220px; object-fit: cover; border-radius: 12px; margin-bottom: 15px; background-color: #f1f1f1; display: block;">
+                <h2 id="cardName" style="margin: 0 0 10px 0; color: var(--text-main);"></h2>
+                <p style="color: var(--text-muted); font-size: 14px; margin: 0 0 5px 0;">
+                    <strong>Type:</strong> <span id="cardType"></span>
+                    &nbsp;|&nbsp;
+                    <strong>Price:</strong> <span id="cardPrice"></span>
+                    &nbsp;|&nbsp;
+                    <strong>Distance:</strong> <span id="cardDistance"></span>
+                </p>
+                <p style="color: var(--text-muted); font-size: 14px; margin: 0 0 15px 0;">
+                    <strong>Rating:</strong> <span id="cardRating"></span>
+                </p>
+                <a id="cardLink" href="#" target="_blank"
+                    style="color: var(--primary); font-weight: bold; font-size: 14px; text-decoration: none;">
+                    🔗 View on Yelp
+                </a>
+                <br><br>
+                <div style="display: flex; gap: 15px;">
+                    <button class="vote-btn vote-btn-no"  onclick="vote('no')">No</button>
+                    <button class="vote-btn vote-btn-yes" onclick="vote('yes')">Yes</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Done card -->
+        <div id="doneCard" style="display: none; width: 100%; max-width: 460px;">
+            <div class="card text-center">
+                <h1 style="color: var(--text-main); margin-top: 0;">All Done!</h1>
+                <p style="color: var(--text-muted);">Waiting for the rest of your group to finish...</p>
+                <div id="pollStatus" style="margin: 15px 0; color: var(--text-muted); font-size: 14px;">
+                    Checking results...
+                </div>
+                <div class="info-panel" style="text-align: left; margin-bottom: 20px;">
+                    <p style="margin: 0 0 10px 0;"><strong>Your Picks:</strong></p>
+                    <div id="picksList"></div>
+                </div>
+                <button onclick="location.href='dashboard.html'" class="btn btn-dark">
+                    Back to Dashboard
+                </button>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        var urlParams  = new URLSearchParams(window.location.search);
+        var sessionPin = urlParams.get('code');
+
+        var username = "Guest";
+        try { username = JSON.parse(localStorage.getItem('user_info')).username || "Guest"; } catch(e) {}
+
+        var activities   = [];
+        var currentIndex = 0;
+        var yesVotes     = [];
+
+        async function init() {
+            if (!sessionPin) {
+                showError("No session code found. Go back to the dashboard.");
+                return;
+            }
+
+            try {
+                const response = await fetch(`http://localhost:3000/api/session/${sessionPin}/activities`);
+                if (!response.ok) throw new Error("Could not fetch activities from Yelp");
+                
+                const data = await response.json();
+                
+                if (!data.businesses || data.businesses.length === 0) {
+                    showError("No activities found nearby.");
+                    return;
+                }
+
+                activities = data.businesses.map(b => ({
+                    name: b.name,
+                    type: b.categories.map(c => c.title).join(", "),
+                    price: b.price || "N/A",
+                    distance: (b.distance * 0.000621371).toFixed(1) + " mi",
+                    rating: b.rating + " ⭐ (" + b.review_count + " reviews)",
+                    link: b.url,
+                    image_url: b.image_url || "https://images.unsplash.com/photo-1555597673-b21d5c935865?w=600&q=80"
+                })).slice(0, 10);
+
+                document.getElementById('loadingMessage').style.display = 'none';
+                document.getElementById('votingCard').style.display     = 'block';
+                loadCard(0);
+
+            } catch (err) {
+                console.error(err);
+                showError("Failed to load activities.");
+            }
+        }
+
+        function loadCard(i) {
+            var a = activities[i];
+            document.getElementById('cardImg').src              = a.image_url;
+            document.getElementById('cardName').textContent     = a.name;
+            document.getElementById('cardType').textContent     = a.type;
+            document.getElementById('cardPrice').textContent    = a.price;
+            document.getElementById('cardDistance').textContent = a.distance;
+            document.getElementById('cardRating').textContent   = a.rating;
+            document.getElementById('cardLink').href            = a.link;
+            document.getElementById('progressMsg').textContent  = "Activity " + (i + 1) + " of " + activities.length;
+        }
+
+        function vote(choice) {
+            if (choice === 'yes') {
+                yesVotes.push(activities[currentIndex].name);
+            }
+            currentIndex++;
+            if (currentIndex < activities.length) {
+                loadCard(currentIndex);
+            } else {
+                finishVoting();
+            }
+        }
+
+        async function finishVoting() {
+            document.getElementById('votingCard').style.display = 'none';
+            document.getElementById('doneCard').style.display   = 'block';
+
+            var picksList = document.getElementById('picksList');
+            if (yesVotes.length === 0) {
+                picksList.innerHTML = '<p style="color: var(--text-muted); margin: 0;">You said no to everything!</p>';
+            } else {
+                yesVotes.forEach(function(name) {
+                    picksList.innerHTML += '<p style="margin: 5px 0;"><strong>' + name + '</strong></p>';
+                });
+            }
+
+            try {
+                await fetch('http://localhost:3000/api/session/' + sessionPin + '/vote', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: username, picks: yesVotes })
+                });
+            } catch (err) {
+                console.error("Could not submit votes:", err);
+            }
+
+            pollForResults();
+        }
+
+        function pollForResults() {
+            var statusEl = document.getElementById('pollStatus');
+            var attempts = 0;
+            var interval = setInterval(async function() {
+                attempts++;
+                if (attempts > 40) {
+                    clearInterval(interval);
+                    statusEl.textContent = "Timed out waiting for results.";
+                    return;
+                }
+                try {
+                    var response = await fetch('http://localhost:3000/api/session/' + sessionPin + '/results');
+                    var data = await response.json();
+                    if (data.ready) {
+                        clearInterval(interval);
+                        if (typeof window.setInternalNavigation === 'function') window.setInternalNavigation();
+                        window.location.href = 'results.html?code=' + sessionPin + '&category=activities';
+                    } else {
+                        statusEl.textContent = data.message || "Waiting for others...";
+                    }
+                } catch (err) {
+                    console.error("Results poll error:", err);
+                }
+            }, 3000);
+        }
+
+        function showError(msg) {
+            document.getElementById('loadingMessage').style.display = 'none';
+            document.getElementById('errorText').textContent = msg;
+            document.getElementById('errorMessage').style.display = 'block';
+        }
+
+        init();
+    </script>
+</body>
+</html>

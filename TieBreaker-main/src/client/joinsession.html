@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Join Session - TieBreaker</title>
+    <link rel="icon" type="image/png" href="images/tieBreaker.png">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <script src="leave-handler.js"></script>
+</head>
+
+<body>
+    <!-- Navbar -->
+    <nav class="navbar">
+        <span class="navbar-brand">TieBreaker</span>
+        <div>
+            <a href="#" onclick="triggerLeaveAndRedirect('dashboard.html')">Back to Dashboard</a>
+        </div>
+    </nav>
+
+    <div class="page-wrapper">
+        <div class="card" style="width: 100%; max-width: 520px; text-align: center;">
+
+            <h1 style="margin-top: 0; color: var(--text-main);">Join Session</h1>
+            <p id="statusMsg" style="color: var(--text-muted); font-size: 18px;">Connecting to session...</p>
+
+            <!-- Hidden until connected -->
+            <div id="sessionInfo" style="display: none;">
+                <div class="info-panel" style="margin-bottom: 20px; text-align: left;">
+                    <h2 style="color: var(--text-main); margin-top: 0;">
+                        <span id="session-icon"></span>
+                        <span id="session-title">Loading...</span>
+                    </h2>
+                    <p style="margin: 0; color: var(--text-muted);">
+                        Participants: <strong id="participantCount">0</strong>
+                    </p>
+                </div>
+
+                <h3 style="color: var(--black);">Waiting for host to start...</h3>
+
+                <div id="participants-container" class="info-panel" style="min-height: 60px; text-align: left;">
+                    <!-- User rows added here by JS -->
+                </div>
+
+                <br>
+                <button class="btn btn-red" onclick="triggerLeaveAndRedirect('dashboard.html')">
+                    Leave Session
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Read the PIN from the URL and the username from localStorage
+        const urlParams = new URLSearchParams(window.location.search);
+        const pin = urlParams.get('code');
+
+        let username = "Guest";
+        const storedInfo = localStorage.getItem('user_info');
+        if (storedInfo) {
+            try {
+                username = JSON.parse(storedInfo).username || "Guest";
+            } catch (e) {
+                username = storedInfo;
+            }
+        }
+
+        // Run immediately when page loads
+        joinAndListen();
+
+        async function joinAndListen() {
+            if (!pin) {
+                alert("No PIN code provided.");
+                window.location.href = 'dashboard.html';
+                return;
+            }
+            try {
+                // Tell the server we're joining
+                const joinResp = await fetch('http://localhost:3000/api/session/join', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ pin, username })
+                });
+                const joinData = await joinResp.json();
+
+                if (!joinData.success) {
+                    document.getElementById('statusMsg').textContent = "Error: " + (joinData.error || "Could not join.");
+                    document.getElementById('statusMsg').style.color = "var(--red)";
+                    return;
+                }
+
+                // Show the waiting room
+                document.getElementById('statusMsg').innerHTML = `Connected! Code: <strong>${pin}</strong>`;
+                document.getElementById('sessionInfo').style.display = 'block';
+
+                // Start polling every 2 seconds for updates
+                startPolling();
+            } catch (err) {
+                console.error(err);
+                document.getElementById('statusMsg').textContent = "Server Connection Error";
+            }
+        }
+
+        function startPolling() {
+            setInterval(async () => {
+                try {
+                    const response = await fetch(`http://localhost:3000/api/session/${pin}`);
+                    const data = await response.json();
+
+                    if (data.success) {
+                        // Update category label and icon
+                        updateCategoryUI(data.category);
+
+                        // Update participant count
+                        document.getElementById('participantCount').textContent = data.users.length;
+
+                        // Rebuild the participant list
+                        const list = document.getElementById('participants-container');
+                        list.innerHTML = '';
+                        data.users.forEach((u, index) => {
+                            const isHost = index === 0;
+                            const row = document.createElement('div');
+                            row.className = 'user-row' + (isHost ? ' is-host' : '');
+                            row.innerHTML = `<span>${u}</span> ${isHost ? '<span class="host-badge">HOST</span>' : ''}`;
+                            list.appendChild(row);
+                        });
+
+                        // If host clicked Start, redirect to the voting page
+                        if (data.isActive) {
+                            if (typeof window.setInternalNavigation === 'function') window.setInternalNavigation();
+                            window.location.href = `vote${data.category}.html?code=${pin}`;
+                        }
+                    }
+                } catch (e) {
+                    console.error("Polling error", e);
+                }
+            }, 2000);
+        }
+
+        function updateCategoryUI(category) {
+            const title = document.getElementById('session-title');
+            const icon = document.getElementById('session-icon');
+            if (category === 'movies') {
+                title.textContent = "Movies Session";
+            } else if (category === 'activities') {
+                title.textContent = "Activities Session";
+            } else {
+                title.textContent = "Food Session";
+            }
+        }
+    </script>
+</body>
+
+</html>

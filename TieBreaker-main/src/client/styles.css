@@ -1,0 +1,295 @@
+:root {
+    --red: #EF4444;
+    --green: #10B981;
+    --primary: #2563EB;
+    --text-main: #1F2937;
+    --text-muted: #6B7280;
+    --shadow: 0px 10px 30px rgba(0, 0, 0, 0.2);
+    --radius: 20px;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: 'Inter', Arial, sans-serif;
+    background-color: #8ac1f1;
+    min-height: 100vh;
+}
+
+/* Navbar */
+.navbar {
+    background-color: white;
+    padding: 15px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.navbar-brand {
+    font-size: 20px;
+    font-weight: bold;
+    color: var(--text-main);
+    text-decoration: none;
+}
+
+.navbar a {
+    text-decoration: none;
+    font-weight: bold;
+    margin-left: 15px;
+    color: var(--text-main);
+}
+
+.navbar a.danger {
+    color: var(--red);
+}
+
+/* Cards */
+.card {
+    background-color: white;
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 40px;
+}
+
+.page-wrapper {
+    display: flex;
+    justify-content: center;
+    padding: 40px 20px;
+}
+
+/* Buttons */
+.btn {
+    padding: 15px;
+    border: none;
+    border-radius: 10px;
+    font-weight: bold;
+    font-size: 16px;
+    cursor: pointer;
+    width: 100%;
+    transition: filter 0.2s;
+}
+
+.btn:hover {
+    filter: brightness(110%);
+}
+
+.btn-red {
+    background-color: var(--red);
+    color: white;
+    box-shadow: 0px 4px 10px rgba(239, 68, 68, 0.3);
+}
+
+.btn-green {
+    background-color: var(--green);
+    color: white;
+    box-shadow: 0px 4px 10px rgba(16, 185, 129, 0.3);
+}
+
+.btn-dark {
+    background-color: #333;
+    color: white;
+}
+
+.btn-gray {
+    background-color: #ccc;
+    color: white;
+    cursor: not-allowed;
+}
+
+.btn-gray:hover {
+    filter: none;
+}
+
+/* Back button */
+.back-btn {
+    display: inline-block;
+    background-color: white;
+    padding: 10px 15px;
+    border-radius: 8px;
+    border: none;
+    font-weight: bold;
+    font-size: 14px;
+    cursor: pointer;
+    margin: 10px;
+    text-decoration: none;
+    color: var(--text-main);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    transition: all 0.2s;
+}
+
+.back-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+/* Form inputs */
+.form-label {
+    display: block;
+    font-weight: bold;
+    margin-bottom: 6px;
+    color: var(--text-main);
+    text-align: left;
+}
+
+.form-input {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    font-size: 15px;
+    font-family: inherit;
+    margin-bottom: 20px;
+}
+
+.form-input:focus {
+    outline: none;
+    border-color: var(--primary);
+}
+
+/* Title underline bar */
+.title-bar {
+    height: 4px;
+    width: 200px;
+    border-radius: 10px;
+    margin: 8px auto 25px auto;
+}
+
+.title-bar-red   { background-color: var(--red); }
+.title-bar-green { background-color: var(--green); }
+.title-bar-dark  { background-color: #333; }
+
+/* Participant rows in lobby */
+.user-row {
+    background-color: white;
+    padding: 12px 15px;
+    margin: 8px 0;
+    border-left: 5px solid var(--green);
+    border-radius: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.05);
+}
+
+.user-row.is-host {
+    border-left-color: var(--red);
+}
+
+.host-badge {
+    background-color: var(--red);
+    color: white;
+    padding: 3px 8px;
+    border-radius: 5px;
+    font-size: 11px;
+    font-weight: bold;
+}
+
+/* Grey info box */
+.info-panel {
+    background-color: #f1f5f9;
+    padding: 20px;
+    border-radius: 15px;
+    border: 1px solid #e2e8f0;
+}
+
+.modes-container {
+    display: flex;
+    gap: 20px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-top: 10px;
+}
+
+.mode-card {
+    flex: 1;
+    min-width: 180px;
+    padding: 25px 20px;
+    border-radius: 16px;
+    border: 2px solid transparent;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    background-color: white;
+}
+
+/* Hover Effect */
+.mode-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.08);
+}
+
+/* Unified Image Styling */
+.mode-image {
+    width: 90px;
+    height: 90px;
+    object-fit: cover;
+    border-radius: 16px;
+    margin: 15px 0;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+/* Specific Mode Colors */
+.mode-food {
+    background: #FFF7ED;
+    border-color: #F97316; /* Softer orange */
+}
+.mode-food strong { color: #C2410C; }
+
+.mode-movies {
+    background: #EFF6FF;
+    border-color: #3B82F6; /* Brighter blue */
+}
+.mode-movies strong { color: #1D4ED8; }
+
+.mode-activities {
+    background: #F0FDF4;
+    border-color: #22C55E; /* Vibrant green */
+}
+.mode-activities strong { color: #15803D; }
+
+/* Text formatting inside cards */
+.mode-title {
+    font-size: 18px;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+}
+
+.mode-desc {
+    font-size: 14px;
+    color: var(--text-main);
+    margin-bottom: 8px;
+    line-height: 1.4;
+    flex-grow: 1; /* Pushes the "coming soon" text to the very bottom */
+}
+
+.mode-note {
+    font-size: 11px;
+    color: var(--text-muted);
+    font-style: italic;
+}
+
+/* Warning box */
+.warning-box {
+    background-color: #FEF9C3;
+    border: 2px solid #EAB308;
+    border-radius: 12px;
+    padding: 20px 25px;
+    color: #000000;
+    display: inline-block;
+}
+
+/* Misc helpers */
+.divider {
+    height: 1px;
+    background-color: #E5E7EB;
+    margin: 25px 0;
+}
+
+.text-center { text-align: center; }
+.text-muted  { color: var(--text-muted); }
